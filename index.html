@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="やりくり帳">
+<title>やりくり帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F0E8;
+  --surface: #FFFDF8;
+  --surface2: #EDE8DC;
+  --ink: #1A1410;
+  --ink2: #6B5E50;
+  --ink3: #9C8D7E;
+  --accent: #C84B2F;
+  --accent2: #E8956A;
+  --green: #3A7D5C;
+  --green-light: #EAF4EE;
+  --red: #C84B2F;
+  --red-light: #FAEAE6;
+  --blue: #2F5FC8;
+  --blue-light: #E6EEFA;
+  --border: #D8D0C4;
+  --shadow: 0 2px 12px rgba(26,20,16,0.08);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── ヘッダー ── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  padding: 12px 16px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.app-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  color: var(--bg);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50px;
+  padding: 4px 8px;
+}
+.month-nav button {
+  background: none;
+  border: none;
+  color: var(--bg);
+  font-size: 16px;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 1;
+}
+.month-nav button:active { background: rgba(255,255,255,0.2); }
+.month-label {
+  color: var(--bg);
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ── サマリーカード ── */
+.summary-bar {
+  background: var(--accent);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  text-align: center;
+}
+.summary-item { }
+.summary-label { font-size: 10px; color: rgba(255,255,255,0.75); font-weight: 500; letter-spacing: 0.05em; }
+.summary-value { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+.summary-value.balance-positive { color: #A8EDCA; }
+.summary-value.balance-negative { color: #FFBBAA; }
+
+/* ── メインコンテンツ ── */
+.main {
+  padding: 14px 14px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── セクションカード ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.icon-income { background: var(--green-light); }
+.icon-fixed { background: var(--blue-light); }
+.icon-cash { background: #FEF3E2; }
+.icon-actual { background: #F3EEFE; }
+.icon-savings { background: var(--green-light); }
+
+.section-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.section-subtitle { font-size: 11px; color: var(--ink3); }
+.section-total {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.total-income { color: var(--green); }
+.total-expense { color: var(--red); }
+.total-savings { color: var(--blue); }
+
+.chevron {
+  font-size: 12px;
+  color: var(--ink3);
+  transition: transform 0.2s;
+  margin-left: 4px;
+}
+.card.collapsed .chevron { transform: rotate(-90deg); }
+
+.card-body {
+  padding: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.card.collapsed .card-body { display: none; }
+
+/* ── 行 ── */
+.row {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--surface2);
+  gap: 8px;
+}
+.row:last-child { border-bottom: none; }
+.row-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink2);
+  min-width: 0;
+}
+.row-note {
+  font-size: 10px;
+  color: var(--ink3);
+  white-space: nowrap;
+  margin-left: 4px;
+}
+.row-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.yen-sign {
+  font-size: 12px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+.row-input {
+  width: 100px;
+  text-align: right;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+.row-input:focus {
+  border-color: var(--accent2);
+  background: #FFFDF8;
+}
+.row-input.income-input:focus { border-color: var(--green); }
+.row-input.savings-input:focus { border-color: var(--blue); }
+.row-input.has-value { background: #FFFBF0; }
+
+/* 削除ボタン */
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--ink3);
+  font-size: 16px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.delete-btn:active { background: var(--red-light); color: var(--red); }
+
+/* 追加ボタン */
+.add-row-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--ink3);
+  font-size: 12px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border-top: 1px dashed var(--border);
+}
+.add-row-btn:active { background: var(--surface2); }
+.add-row-btn span { font-size: 16px; color: var(--accent2); }
+
+/* 前月マイナス行 */
+.row.carry-over { background: var(--red-light); }
+.row.carry-over .row-label { color: var(--red); font-weight: 500; }
+
+/* ── 残高表示 ── */
+.balance-card {
+  background: var(--ink);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.balance-card-label { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+.balance-card-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+.balance-positive { color: #A8EDCA; }
+.balance-negative { color: #FFBBAA; }
+.balance-note { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+/* ── 月履歴ボタン ── */
+.history-btn-wrap {
+  text-align: center;
+}
+.history-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.history-btn:active { background: var(--surface2); }
+
+/* ── モーダル ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,20,16,0.5);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 0 0 40px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto 8px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+.history-list { padding: 8px 0; }
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface2);
+  cursor: pointer;
+}
+.history-item:active { background: var(--surface2); }
+.history-item-month { font-size: 15px; font-weight: 700; color: var(--ink); }
+.history-item-info { font-size: 11px; color: var(--ink3); margin-top: 2px; }
+.history-item-balance { font-size: 14px; font-weight: 700; }
+.history-empty { padding: 24px; text-align: center; color: var(--ink3); font-size: 13px; }
+
+/* ── ボトム アクション ── */
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px 28px;
+  background: linear-gradient(to top, var(--bg) 80%, transparent);
+  display: flex;
+  gap: 10px;
+  z-index: 50;
+}
+.btn-save {
+  flex: 1;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 14px;
+  font-size: 15px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+.btn-save:active { opacity: 0.85; }
+.btn-history {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  padding: 14px 18px;
+  font-size: 20px;
+  cursor: pointer;
+}
+.btn-history:active { background: var(--surface2); }
+
+/* ── トースト ── */
+.toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 300;
+  white-space: nowrap;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── 新規月コピー ── */
+.new-month-tip {
+  background: var(--blue-light);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="app-header">
+  <div class="app-title">やりくり帳</div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <div class="month-label" id="monthLabel">2026年6月</div>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+</div>
+
+<!-- サマリーバー -->
+<div class="summary-bar">
+  <div class="summary-item">
+    <div class="summary-label">収入</div>
+    <div class="summary-value" id="summaryIncome">¥0</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">支出</div>
+    <div class="summary-value" id="summaryExpense">¥0</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-label">残高</div>
+    <div class="summary-value balance-positive" id="summaryBalance">¥0</div>
+  </div>
+</div>
+
+<!-- メイン -->
+<div class="main">
+
+  <!-- 新規月バナー -->
+  <div class="new-month-tip" id="newMonthTip" style="display:none">
+    💡 新しい月です。前月のデータをコピーしますか？
+    <button onclick="copyFromPrevMonth()" style="background:var(--blue);color:#fff;border:none;border-radius:20px;padding:4px 12px;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap">コピー</button>
+  </div>
+
+  <!-- ① 収入 -->
+  <div class="card" id="card-income">
+    <div class="card-header" onclick="toggleCard('income')">
+      <div class="card-header-left">
+        <div class="section-icon icon-income">💰</div>
+        <div>
+          <div class="section-title">① 収入</div>
+          <div class="section-subtitle">手取り・事業用資金</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="section-total total-income" id="total-income">¥0</div>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="card-body" id="body-income">
+      <div id="rows-income"></div>
+      <button class="add-row-btn" onclick="addRow('income')"><span>＋</span>項目を追加</button>
+    </div>
+  </div>
+
+  <!-- ② 固定引き落とし -->
+  <div class="card" id="card-fixed">
+    <div class="card-header" onclick="toggleCard('fixed')">
+      <div class="card-header-left">
+        <div class="section-icon icon-fixed">📋</div>
+        <div>
+          <div class="section-title">② 固定引き落とし</div>
+          <div class="section-subtitle">住宅ローン・保険・カード等</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="section-total total-expense" id="total-fixed">¥0</div>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="card-body" id="body-fixed">
+      <div id="rows-fixed"></div>
+      <button class="add-row-btn" onclick="addRow('fixed')"><span>＋</span>項目を追加</button>
+    </div>
+  </div>
+
+  <!-- ③ 現金払い（計画） -->
+  <div class="card" id="card-cash">
+    <div class="card-header" onclick="toggleCard('cash')">
+      <div class="card-header-left">
+        <div class="section-icon icon-cash">💴</div>
+        <div>
+          <div class="section-title">③ 現金払い</div>
+          <div class="section-subtitle">家事費・お小遣い・雑費</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="section-total total-expense" id="total-cash">¥0</div>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="card-body" id="body-cash">
+      <div id="rows-cash"></div>
+      <button class="add-row-btn" onclick="addRow('cash')"><span>＋</span>項目を追加</button>
+    </div>
+  </div>
+
+  <!-- ④ 現金実績（食費等） -->
+  <div class="card" id="card-actual">
+    <div class="card-header" onclick="toggleCard('actual')">
+      <div class="card-header-left">
+        <div class="section-icon icon-actual">🧾</div>
+        <div>
+          <div class="section-title">④ 現金実績</div>
+          <div class="section-subtitle">食費・日用品・ガソリン等</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="section-total total-expense" id="total-actual">¥0</div>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="card-body" id="body-actual">
+      <div id="rows-actual"></div>
+      <button class="add-row-btn" onclick="addRow('actual')"><span>＋</span>項目を追加</button>
+    </div>
+  </div>
+
+  <!-- ⑤ 貯蓄 -->
+  <div class="card" id="card-savings">
+    <div class="card-header" onclick="toggleCard('savings')">
+      <div class="card-header-left">
+        <div class="section-icon icon-savings">🏦</div>
+        <div>
+          <div class="section-title">⑤ 貯蓄</div>
+          <div class="section-subtitle">つみたて信用・現金など</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="section-total total-savings" id="total-savings">¥0</div>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="card-body" id="body-savings">
+      <div id="rows-savings"></div>
+      <button class="add-row-btn" onclick="addRow('savings')"><span>＋</span>項目を追加</button>
+    </div>
+  </div>
+
+  <!-- 残高 -->
+  <div class="balance-card">
+    <div class="balance-card-label">今月の残高</div>
+    <div class="balance-card-value balance-positive" id="balanceValue">¥0</div>
+    <div class="balance-note" id="balanceNote">収入 − 支出合計 − 貯蓄</div>
+  </div>
+
+</div>
+
+<!-- ボトム アクション -->
+<div class="bottom-actions">
+  <button class="btn-save" onclick="saveMonth()">💾 保存</button>
+  <button class="btn-history" onclick="openHistory()">📅</button>
+</div>
+
+<!-- 履歴モーダル -->
+<div class="modal-overlay" id="historyModal" onclick="closeHistoryOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">月別履歴</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── データ構造 ──────────────────────────────────
+// 各月: { year, month, sections: { income:[], fixed:[], cash:[], actual:[], savings:[] } }
+// 各行: { id, label, note, value }
+
+const STORAGE_KEY = 'kakeicho_v2';
+const SECTION_KEYS = ['income','fixed','cash','actual','savings'];
+
+// デフォルト項目
+const DEFAULT_ITEMS = {
+  income: [
+    { label:'手取り総額', note:'' }
+  ],
+  fixed: [
+    { label:'事業用資金', note:'広島銀行' },
+    { label:'住宅ローン', note:'ケンシン' },
+    { label:'確定拠出', note:'' },
+    { label:'水道代', note:'' },
+    { label:'共保険', note:'' },
+    { label:'楽天JCB', note:'' },
+    { label:'楽天VISA', note:'' },
+    { label:'寄付費', note:'' }
+  ],
+  cash: [
+    { label:'家事費計費', note:'' },
+    { label:'前月マイナス分', note:'' },
+    { label:'雑費', note:'' },
+    { label:'お小遣い', note:'裁量' }
+  ],
+  actual: [
+    { label:'SBI', note:'' },
+    { label:'コープ', note:'' },
+    { label:'カード', note:'' },
+    { label:'食費', note:'' },
+    { label:'日用品', note:'' },
+    { label:'ガソリン', note:'' },
+    { label:'灯油', note:'' },
+    { label:'まとめ', note:'' },
+    { label:'お米', note:'' }
+  ],
+  savings: [
+    { label:'貯蓄', note:'つみたて信用' },
+    { label:'残余額貯蓄', note:'現金' }
+  ]
+};
+
+let currentYear, currentMonth;
+let monthData = {}; // { 'YYYY-MM': {sections:{...}} }
+
+// ─── 初期化 ───────────────────────────────────────
+function init() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  loadAllData();
+  renderMonth();
+}
+
+function loadAllData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) monthData = JSON.parse(raw);
+  } catch(e) { monthData = {}; }
+}
+
+function saveAllData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(monthData));
+}
+
+function monthKey(y, m) {
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+
+function getMonthData(y, m) {
+  const key = monthKey(y, m);
+  if (!monthData[key]) return null;
+  return monthData[key];
+}
+
+function createEmptyMonth() {
+  const sections = {};
+  SECTION_KEYS.forEach(sec => {
+    sections[sec] = DEFAULT_ITEMS[sec].map((item, i) => ({
+      id: `${sec}_${i}_${Date.now()}`,
+      label: item.label,
+      note: item.note,
+      value: ''
+    }));
+  });
+  return { sections };
+}
+
+// ─── レンダリング ────────────────────────────────
+function renderMonth() {
+  const key = monthKey(currentYear, currentMonth);
+  document.getElementById('monthLabel').textContent =
+    `${currentYear}年${currentMonth}月`;
+
+  const data = getMonthData(currentYear, currentMonth);
+  const isNew = !data;
+
+  // 新規月バナー
+  document.getElementById('newMonthTip').style.display = isNew ? 'flex' : 'none';
+
+  const d = data || createEmptyMonth();
+
+  SECTION_KEYS.forEach(sec => {
+    renderSection(sec, d.sections[sec]);
+  });
+
+  recalc(d);
+}
+
+function renderSection(sec, rows) {
+  const container = document.getElementById(`rows-${sec}`);
+  container.innerHTML = '';
+  rows.forEach(row => {
+    container.appendChild(createRowEl(sec, row));
+  });
+}
+
+function createRowEl(sec, row) {
+  const div = document.createElement('div');
+  div.className = 'row';
+  div.dataset.id = row.id;
+  div.dataset.sec = sec;
+
+  const labelEl = document.createElement('input');
+  labelEl.type = 'text';
+  labelEl.value = row.label;
+  labelEl.className = 'row-label';
+  labelEl.style.cssText = 'background:transparent;border:none;outline:none;font-family:inherit;font-size:13px;color:var(--ink2);width:100%;';
+  labelEl.placeholder = '項目名';
+  labelEl.addEventListener('change', () => onFieldChange(sec));
+
+  const noteEl = document.createElement('span');
+  noteEl.className = 'row-note';
+  noteEl.textContent = row.note;
+
+  const yen = document.createElement('span');
+  yen.className = 'yen-sign';
+  yen.textContent = '¥';
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.inputMode = 'numeric';
+  input.pattern = '[0-9]*';
+  input.value = row.value;
+  input.className = `row-input ${sec === 'income' ? 'income-input' : sec === 'savings' ? 'savings-input' : ''}`;
+  if (row.value) input.classList.add('has-value');
+  input.placeholder = '0';
+  input.addEventListener('input', () => {
+    if (input.value) input.classList.add('has-value');
+    else input.classList.remove('has-value');
+    onFieldChange(sec);
+  });
+
+  const wrap = document.createElement('div');
+  wrap.className = 'row-input-wrap';
+  wrap.appendChild(yen);
+  wrap.appendChild(input);
+
+  const del = document.createElement('button');
+  del.className = 'delete-btn';
+  del.textContent = '×';
+  del.addEventListener('click', () => {
+    div.remove();
+    onFieldChange(sec);
+  });
+
+  div.appendChild(labelEl);
+  if (row.note) div.appendChild(noteEl);
+  div.appendChild(wrap);
+  div.appendChild(del);
+  return div;
+}
+
+// ─── 行追加 ────────────────────────────────────────
+function addRow(sec) {
+  const newRow = {
+    id: `${sec}_new_${Date.now()}`,
+    label: '',
+    note: '',
+    value: ''
+  };
+  const container = document.getElementById(`rows-${sec}`);
+  const el = createRowEl(sec, newRow);
+  container.appendChild(el);
+  el.querySelector('input[type=text]').focus();
+}
+
+// ─── 計算 ─────────────────────────────────────────
+function getRows(sec) {
+  const rows = [];
+  document.querySelectorAll(`#rows-${sec} .row`).forEach(div => {
+    const label = div.querySelector('input[type=text]').value;
+    const val = parseInt(div.querySelector('input[type=number]').value) || 0;
+    const id = div.dataset.id;
+    rows.push({ id, label, note: '', value: val ? String(val) : '' });
+  });
+  return rows;
+}
+
+function sumSection(sec) {
+  return getRows(sec).reduce((s, r) => s + (parseInt(r.value) || 0), 0);
+}
+
+function fmtYen(n) {
+  return '¥' + n.toLocaleString('ja-JP');
+}
+
+function recalc() {
+  const income  = sumSection('income');
+  const fixed   = sumSection('fixed');
+  const cash    = sumSection('cash');
+  const actual  = sumSection('actual');
+  const savings = sumSection('savings');
+
+  const totalExpense = fixed + cash + actual;
+  const balance = income - totalExpense - savings;
+
+  document.getElementById('total-income').textContent  = fmtYen(income);
+  document.getElementById('total-fixed').textContent   = fmtYen(fixed);
+  document.getElementById('total-cash').textContent    = fmtYen(cash);
+  document.getElementById('total-actual').textContent  = fmtYen(actual);
+  document.getElementById('total-savings').textContent = fmtYen(savings);
+
+  // サマリーバー
+  document.getElementById('summaryIncome').textContent  = fmtYen(income);
+  document.getElementById('summaryExpense').textContent = fmtYen(totalExpense);
+  const balEl = document.getElementById('summaryBalance');
+  balEl.textContent = fmtYen(balance);
+  balEl.className = 'summary-value ' + (balance >= 0 ? 'balance-positive' : 'balance-negative');
+
+  // 残高カード
+  const bv = document.getElementById('balanceValue');
+  bv.textContent = fmtYen(balance);
+  bv.className = 'balance-card-value ' + (balance >= 0 ? 'balance-positive' : 'balance-negative');
+  document.getElementById('balanceNote').textContent =
+    `${fmtYen(income)} − ${fmtYen(totalExpense)} − ${fmtYen(savings)}`;
+}
+
+function onFieldChange() {
+  recalc();
+}
+
+// ─── 保存 ─────────────────────────────────────────
+function collectCurrentData() {
+  const sections = {};
+  SECTION_KEYS.forEach(sec => {
+    sections[sec] = getRows(sec);
+  });
+  return { sections };
+}
+
+function saveMonth() {
+  const key = monthKey(currentYear, currentMonth);
+  monthData[key] = collectCurrentData();
+  saveAllData();
+  showToast('💾 保存しました');
+}
+
+// ─── 月移動 ────────────────────────────────────────
+function changeMonth(delta) {
+  // 現在のデータを自動保存
+  const key = monthKey(currentYear, currentMonth);
+  monthData[key] = collectCurrentData();
+  saveAllData();
+
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1)  { currentMonth = 12; currentYear--; }
+  renderMonth();
+  window.scrollTo(0, 0);
+}
+
+// ─── 前月コピー ──────────────────────────────────
+function copyFromPrevMonth() {
+  let py = currentYear, pm = currentMonth - 1;
+  if (pm < 1) { pm = 12; py--; }
+  const prev = getMonthData(py, pm);
+  if (!prev) { showToast('前月データがありません'); return; }
+
+  // 項目名と注記だけコピー、金額は空に
+  const sections = {};
+  SECTION_KEYS.forEach(sec => {
+    sections[sec] = (prev.sections[sec] || []).map(r => ({
+      id: `${sec}_copy_${Date.now()}_${Math.random()}`,
+      label: r.label,
+      note: r.note,
+      value: ''
+    }));
+  });
+
+  const key = monthKey(currentYear, currentMonth);
+  monthData[key] = { sections };
+  saveAllData();
+  renderMonth();
+  showToast('✓ 前月の項目をコピーしました');
+}
+
+// ─── 履歴 ─────────────────────────────────────────
+function openHistory() {
+  // 現在のデータを一時保存
+  const key = monthKey(currentYear, currentMonth);
+  monthData[key] = collectCurrentData();
+
+  const list = document.getElementById('historyList');
+  const keys = Object.keys(monthData).sort().reverse();
+
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="history-empty">まだ保存済みデータがありません</div>';
+  } else {
+    list.innerHTML = '';
+    keys.forEach(k => {
+      const d = monthData[k];
+      const [y, m] = k.split('-');
+      const income = (d.sections.income || []).reduce((s,r) => s + (parseInt(r.value)||0), 0);
+      const expense = ['fixed','cash','actual'].reduce((s,sec) =>
+        s + (d.sections[sec]||[]).reduce((ss,r) => ss + (parseInt(r.value)||0), 0), 0);
+      const savings = (d.sections.savings||[]).reduce((s,r) => s + (parseInt(r.value)||0), 0);
+      const bal = income - expense - savings;
+
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div>
+          <div class="history-item-month">${y}年${parseInt(m)}月</div>
+          <div class="history-item-info">収入 ${fmtYen(income)} / 支出 ${fmtYen(expense)}</div>
+        </div>
+        <div class="history-item-balance ${bal>=0?'total-income':'total-expense'}">${fmtYen(bal)}</div>
+      `;
+      item.addEventListener('click', () => {
+        closeHistory();
+        currentYear = parseInt(y);
+        currentMonth = parseInt(m);
+        renderMonth();
+        window.scrollTo(0, 0);
+      });
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('historyModal').classList.add('open');
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('open');
+}
+function closeHistoryOnOverlay(e) {
+  if (e.target === e.currentTarget) closeHistory();
+}
+
+// ─── カード開閉トグル ─────────────────────────────
+function toggleCard(sec) {
+  const card = document.getElementById(`card-${sec}`);
+  card.classList.toggle('collapsed');
+}
+
+// ─── トースト ────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── 起動 ─────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
