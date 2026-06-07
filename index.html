@@ -1140,9 +1140,9 @@ function copyShareUrl() {
 }
 
 function shareToLine() {
-  const url = buildShareUrl();
+  const shareUrl = buildShareUrl();
   const text = `【やりくり帳】${currentYear}年${currentMonth}月`;
-  const lineUrl = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text + '\n' + url)}`;
+  const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
   window.open(lineUrl, '_blank');
 }
 
