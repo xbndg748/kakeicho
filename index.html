@@ -1140,10 +1140,18 @@ function copyShareUrl() {
 }
 
 function shareToLine() {
-  const shareUrl = buildShareUrl();
-  const text = `【やりくり帳】${currentYear}年${currentMonth}月`;
-  const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
-  window.open(lineUrl, '_blank');
+  const income = sumSection('income');
+  const totalExpense = sumSection('fixed') + sumSection('cash') + sumSection('actual');
+  const savings = sumSection('savings');
+  const balance = income - totalExpense - savings;
+  const text = [
+    `【やりくり帳】${currentYear}年${currentMonth}月`,
+    `💰 収入　${fmtYen(income)}`,
+    `💸 支出　${fmtYen(totalExpense)}`,
+    `🏦 貯蓄　${fmtYen(savings)}`,
+    `${balance >= 0 ? '✅' : '⚠️'} 残高　${fmtYen(balance)}`
+  ].join('\n');
+  window.open(`https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`, '_blank');
 }
 
 // ─── 履歴 ─────────────────────────────────────────
