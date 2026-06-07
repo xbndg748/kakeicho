@@ -151,6 +151,7 @@ body {
 .icon-cash { background: #FEF3E2; }
 .icon-actual { background: #F3EEFE; }
 .icon-savings { background: var(--green-light); }
+.icon-chart { background: #FFF0F5; }
 
 .section-title { font-size: 13px; font-weight: 700; color: var(--ink); }
 .section-subtitle { font-size: 11px; color: var(--ink3); }
@@ -289,10 +290,105 @@ body {
 .balance-negative { color: #FFBBAA; }
 .balance-note { font-size: 11px; color: rgba(255,255,255,0.4); }
 
-/* ── 月履歴ボタン ── */
-.history-btn-wrap {
-  text-align: center;
+/* ── グラフ・共有カード ── */
+.chart-inner {
+  padding: 16px;
 }
+.chart-wrap {
+  position: relative;
+  max-width: 280px;
+  margin: 0 auto 16px;
+}
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink2);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-amount {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* LINE・共有ボタン */
+.share-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.btn-line {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #00B900;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-line:active { opacity: 0.85; }
+.btn-copy-url {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-copy-url:active { background: var(--surface2); }
+
+/* ── 読み取り専用バナー ── */
+.readonly-banner {
+  background: #FFF8E1;
+  border: 1.5px solid #FFD54F;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #7B5800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.readonly-banner button {
+  margin-left: auto;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── 月履歴ボタン ── */
+.history-btn-wrap { text-align: center; }
 .history-btn {
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -384,7 +480,8 @@ body {
   letter-spacing: 0.05em;
 }
 .btn-save:active { opacity: 0.85; }
-.btn-history {
+.btn-save:disabled { opacity: 0.4; cursor: default; }
+.btn-icon {
   background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: 50px;
@@ -392,7 +489,7 @@ body {
   font-size: 20px;
   cursor: pointer;
 }
-.btn-history:active { background: var(--surface2); }
+.btn-icon:active { background: var(--surface2); }
 
 /* ── トースト ── */
 .toast {
@@ -460,6 +557,12 @@ body {
 <!-- メイン -->
 <div class="main">
 
+  <!-- 読み取り専用バナー（共有URL経由） -->
+  <div class="readonly-banner" id="readonlyBanner" style="display:none">
+    👁 共有データの閲覧中です（保存されません）
+    <button onclick="exitReadonly()">自分の帳簿へ</button>
+  </div>
+
   <!-- 新規月バナー -->
   <div class="new-month-tip" id="newMonthTip" style="display:none">
     💡 新しい月です。前月のデータをコピーしますか？
@@ -508,7 +611,7 @@ body {
     </div>
   </div>
 
-  <!-- ③ 現金払い（計画） -->
+  <!-- ③ 現金払い -->
   <div class="card" id="card-cash">
     <div class="card-header" onclick="toggleCard('cash')">
       <div class="card-header-left">
@@ -529,7 +632,7 @@ body {
     </div>
   </div>
 
-  <!-- ④ 現金実績（食費等） -->
+  <!-- ④ 現金実績 -->
   <div class="card" id="card-actual">
     <div class="card-header" onclick="toggleCard('actual')">
       <div class="card-header-left">
@@ -578,12 +681,42 @@ body {
     <div class="balance-note" id="balanceNote">収入 − 支出合計 − 貯蓄</div>
   </div>
 
+  <!-- 📊 グラフ・共有カード -->
+  <div class="card collapsed" id="card-chart">
+    <div class="card-header" onclick="toggleChartCard()">
+      <div class="card-header-left">
+        <div class="section-icon icon-chart">📊</div>
+        <div>
+          <div class="section-title">支出グラフ・共有</div>
+          <div class="section-subtitle">内訳の円グラフとLINE共有</div>
+        </div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="card-body">
+      <div class="chart-inner">
+        <div class="chart-wrap">
+          <canvas id="expenseChart"></canvas>
+        </div>
+        <div class="chart-legend" id="chartLegend"></div>
+      </div>
+      <div class="share-actions">
+        <button class="btn-line" onclick="shareToLine()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+          LINEで共有
+        </button>
+        <button class="btn-copy-url" onclick="copyShareUrl()">🔗 URLコピー</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ボトム アクション -->
 <div class="bottom-actions">
-  <button class="btn-save" onclick="saveMonth()">💾 保存</button>
-  <button class="btn-history" onclick="openHistory()">📅</button>
+  <button class="btn-save" id="btnSave" onclick="saveMonth()">💾 保存</button>
+  <button class="btn-icon" onclick="openChartCard()" title="グラフ表示">📊</button>
+  <button class="btn-icon" onclick="openHistory()">📅</button>
 </div>
 
 <!-- 履歴モーダル -->
@@ -598,15 +731,12 @@ body {
 <!-- トースト -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script>
-// ─── データ構造 ──────────────────────────────────
-// 各月: { year, month, sections: { income:[], fixed:[], cash:[], actual:[], savings:[] } }
-// 各行: { id, label, note, value }
-
 const STORAGE_KEY = 'kakeicho_v2';
 const SECTION_KEYS = ['income','fixed','cash','actual','savings'];
 
-// デフォルト項目
 const DEFAULT_ITEMS = {
   income: [
     { label:'手取り総額', note:'' }
@@ -645,14 +775,39 @@ const DEFAULT_ITEMS = {
 };
 
 let currentYear, currentMonth;
-let monthData = {}; // { 'YYYY-MM': {sections:{...}} }
+let monthData = {};
+let isReadOnly = false;
+let expenseChart = null;
+
+const CHART_COLORS = ['#2F5FC8','#E8956A','#9B59B6','#3A7D5C'];
+const CHART_LABELS = ['固定引き落とし','現金払い','現金実績','貯蓄'];
+const CHART_SECTIONS = ['fixed','cash','actual','savings'];
 
 // ─── 初期化 ───────────────────────────────────────
 function init() {
-  const now = new Date();
-  currentYear = now.getFullYear();
-  currentMonth = now.getMonth() + 1;
-  loadAllData();
+  // 共有URLハッシュがあれば読み取り専用モードで表示
+  if (window.location.hash && window.location.hash.length > 1) {
+    try {
+      const compressed = window.location.hash.slice(1);
+      const json = LZString.decompressFromEncodedURIComponent(compressed);
+      const shared = JSON.parse(json);
+      isReadOnly = true;
+      currentYear = shared.year;
+      currentMonth = shared.month;
+      monthData[monthKey(currentYear, currentMonth)] = shared.data;
+      document.getElementById('readonlyBanner').style.display = 'flex';
+      document.getElementById('btnSave').disabled = true;
+    } catch(e) {
+      isReadOnly = false;
+    }
+  }
+
+  if (!isReadOnly) {
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth() + 1;
+    loadAllData();
+  }
   renderMonth();
 }
 
@@ -664,6 +819,7 @@ function loadAllData() {
 }
 
 function saveAllData() {
+  if (isReadOnly) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(monthData));
 }
 
@@ -692,31 +848,23 @@ function createEmptyMonth() {
 
 // ─── レンダリング ────────────────────────────────
 function renderMonth() {
-  const key = monthKey(currentYear, currentMonth);
   document.getElementById('monthLabel').textContent =
     `${currentYear}年${currentMonth}月`;
 
   const data = getMonthData(currentYear, currentMonth);
   const isNew = !data;
 
-  // 新規月バナー
-  document.getElementById('newMonthTip').style.display = isNew ? 'flex' : 'none';
+  document.getElementById('newMonthTip').style.display = (!isReadOnly && isNew) ? 'flex' : 'none';
 
   const d = data || createEmptyMonth();
-
-  SECTION_KEYS.forEach(sec => {
-    renderSection(sec, d.sections[sec]);
-  });
-
-  recalc(d);
+  SECTION_KEYS.forEach(sec => renderSection(sec, d.sections[sec]));
+  recalc();
 }
 
 function renderSection(sec, rows) {
   const container = document.getElementById(`rows-${sec}`);
   container.innerHTML = '';
-  rows.forEach(row => {
-    container.appendChild(createRowEl(sec, row));
-  });
+  rows.forEach(row => container.appendChild(createRowEl(sec, row)));
 }
 
 function createRowEl(sec, row) {
@@ -731,7 +879,8 @@ function createRowEl(sec, row) {
   labelEl.className = 'row-label';
   labelEl.style.cssText = 'background:transparent;border:none;outline:none;font-family:inherit;font-size:13px;color:var(--ink2);width:100%;';
   labelEl.placeholder = '項目名';
-  labelEl.addEventListener('change', () => onFieldChange(sec));
+  labelEl.readOnly = isReadOnly;
+  labelEl.addEventListener('change', () => onFieldChange());
 
   const noteEl = document.createElement('span');
   noteEl.className = 'row-note';
@@ -749,10 +898,11 @@ function createRowEl(sec, row) {
   input.className = `row-input ${sec === 'income' ? 'income-input' : sec === 'savings' ? 'savings-input' : ''}`;
   if (row.value) input.classList.add('has-value');
   input.placeholder = '0';
+  input.readOnly = isReadOnly;
   input.addEventListener('input', () => {
     if (input.value) input.classList.add('has-value');
     else input.classList.remove('has-value');
-    onFieldChange(sec);
+    onFieldChange();
   });
 
   const wrap = document.createElement('div');
@@ -760,29 +910,24 @@ function createRowEl(sec, row) {
   wrap.appendChild(yen);
   wrap.appendChild(input);
 
-  const del = document.createElement('button');
-  del.className = 'delete-btn';
-  del.textContent = '×';
-  del.addEventListener('click', () => {
-    div.remove();
-    onFieldChange(sec);
-  });
-
   div.appendChild(labelEl);
   if (row.note) div.appendChild(noteEl);
   div.appendChild(wrap);
-  div.appendChild(del);
+
+  if (!isReadOnly) {
+    const del = document.createElement('button');
+    del.className = 'delete-btn';
+    del.textContent = '×';
+    del.addEventListener('click', () => { div.remove(); onFieldChange(); });
+    div.appendChild(del);
+  }
   return div;
 }
 
 // ─── 行追加 ────────────────────────────────────────
 function addRow(sec) {
-  const newRow = {
-    id: `${sec}_new_${Date.now()}`,
-    label: '',
-    note: '',
-    value: ''
-  };
+  if (isReadOnly) return;
+  const newRow = { id:`${sec}_new_${Date.now()}`, label:'', note:'', value:'' };
   const container = document.getElementById(`rows-${sec}`);
   const el = createRowEl(sec, newRow);
   container.appendChild(el);
@@ -795,8 +940,7 @@ function getRows(sec) {
   document.querySelectorAll(`#rows-${sec} .row`).forEach(div => {
     const label = div.querySelector('input[type=text]').value;
     const val = parseInt(div.querySelector('input[type=number]').value) || 0;
-    const id = div.dataset.id;
-    rows.push({ id, label, note: '', value: val ? String(val) : '' });
+    rows.push({ id: div.dataset.id, label, note:'', value: val ? String(val) : '' });
   });
   return rows;
 }
@@ -815,7 +959,6 @@ function recalc() {
   const cash    = sumSection('cash');
   const actual  = sumSection('actual');
   const savings = sumSection('savings');
-
   const totalExpense = fixed + cash + actual;
   const balance = income - totalExpense - savings;
 
@@ -825,48 +968,49 @@ function recalc() {
   document.getElementById('total-actual').textContent  = fmtYen(actual);
   document.getElementById('total-savings').textContent = fmtYen(savings);
 
-  // サマリーバー
   document.getElementById('summaryIncome').textContent  = fmtYen(income);
   document.getElementById('summaryExpense').textContent = fmtYen(totalExpense);
   const balEl = document.getElementById('summaryBalance');
   balEl.textContent = fmtYen(balance);
   balEl.className = 'summary-value ' + (balance >= 0 ? 'balance-positive' : 'balance-negative');
 
-  // 残高カード
   const bv = document.getElementById('balanceValue');
   bv.textContent = fmtYen(balance);
   bv.className = 'balance-card-value ' + (balance >= 0 ? 'balance-positive' : 'balance-negative');
   document.getElementById('balanceNote').textContent =
     `${fmtYen(income)} − ${fmtYen(totalExpense)} − ${fmtYen(savings)}`;
+
+  // グラフが開いていれば更新
+  if (!document.getElementById('card-chart').classList.contains('collapsed')) {
+    renderChart();
+  }
 }
 
-function onFieldChange() {
-  recalc();
-}
+function onFieldChange() { recalc(); }
 
 // ─── 保存 ─────────────────────────────────────────
 function collectCurrentData() {
   const sections = {};
-  SECTION_KEYS.forEach(sec => {
-    sections[sec] = getRows(sec);
-  });
+  SECTION_KEYS.forEach(sec => { sections[sec] = getRows(sec); });
   return { sections };
 }
 
 function saveMonth() {
+  if (isReadOnly) return;
   const key = monthKey(currentYear, currentMonth);
   monthData[key] = collectCurrentData();
   saveAllData();
   showToast('💾 保存しました');
+  openChartCard();
 }
 
 // ─── 月移動 ────────────────────────────────────────
 function changeMonth(delta) {
-  // 現在のデータを自動保存
-  const key = monthKey(currentYear, currentMonth);
-  monthData[key] = collectCurrentData();
-  saveAllData();
-
+  if (!isReadOnly) {
+    const key = monthKey(currentYear, currentMonth);
+    monthData[key] = collectCurrentData();
+    saveAllData();
+  }
   currentMonth += delta;
   if (currentMonth > 12) { currentMonth = 1; currentYear++; }
   if (currentMonth < 1)  { currentMonth = 12; currentYear--; }
@@ -880,18 +1024,13 @@ function copyFromPrevMonth() {
   if (pm < 1) { pm = 12; py--; }
   const prev = getMonthData(py, pm);
   if (!prev) { showToast('前月データがありません'); return; }
-
-  // 項目名と注記だけコピー、金額は空に
   const sections = {};
   SECTION_KEYS.forEach(sec => {
     sections[sec] = (prev.sections[sec] || []).map(r => ({
       id: `${sec}_copy_${Date.now()}_${Math.random()}`,
-      label: r.label,
-      note: r.note,
-      value: ''
+      label: r.label, note: r.note, value: ''
     }));
   });
-
   const key = monthKey(currentYear, currentMonth);
   monthData[key] = { sections };
   saveAllData();
@@ -899,15 +1038,122 @@ function copyFromPrevMonth() {
   showToast('✓ 前月の項目をコピーしました');
 }
 
+// ─── 読み取り専用終了 ────────────────────────────
+function exitReadonly() {
+  window.location.hash = '';
+  window.location.reload();
+}
+
+// ─── グラフ ──────────────────────────────────────
+function openChartCard() {
+  const card = document.getElementById('card-chart');
+  if (card.classList.contains('collapsed')) {
+    card.classList.remove('collapsed');
+    renderChart();
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function toggleChartCard() {
+  const card = document.getElementById('card-chart');
+  card.classList.toggle('collapsed');
+  if (!card.classList.contains('collapsed')) renderChart();
+}
+
+function renderChart() {
+  const values = CHART_SECTIONS.map(sec => sumSection(sec));
+  const total = values.reduce((a, b) => a + b, 0);
+
+  // 凡例更新
+  const legend = document.getElementById('chartLegend');
+  legend.innerHTML = '';
+  CHART_LABELS.forEach((label, i) => {
+    const pct = total > 0 ? Math.round(values[i] / total * 100) : 0;
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `
+      <span class="legend-dot" style="background:${CHART_COLORS[i]}"></span>
+      <span>${label}</span>
+      <span style="font-size:11px;color:var(--ink3)">${pct}%</span>
+      <span class="legend-amount">${fmtYen(values[i])}</span>
+    `;
+    legend.appendChild(item);
+  });
+
+  const ctx = document.getElementById('expenseChart').getContext('2d');
+  const displayValues = total === 0 ? [1, 1, 1, 1] : values;
+
+  if (expenseChart) {
+    expenseChart.data.datasets[0].data = displayValues;
+    expenseChart.update();
+    return;
+  }
+
+  expenseChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: CHART_LABELS,
+      datasets: [{
+        data: displayValues,
+        backgroundColor: CHART_COLORS,
+        borderColor: '#FFFDF8',
+        borderWidth: 3,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (total === 0) return ' データなし';
+              const v = values[ctx.dataIndex];
+              const pct = Math.round(v / total * 100);
+              return ` ${fmtYen(v)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── 共有URL ─────────────────────────────────────
+function buildShareUrl() {
+  const data = collectCurrentData();
+  const payload = { year: currentYear, month: currentMonth, data };
+  const json = JSON.stringify(payload);
+  const compressed = LZString.compressToEncodedURIComponent(json);
+  const base = window.location.href.split('#')[0];
+  return `${base}#${compressed}`;
+}
+
+function copyShareUrl() {
+  const url = buildShareUrl();
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 URLをコピーしました');
+  }).catch(() => {
+    prompt('URLをコピーしてください:', url);
+  });
+}
+
+function shareToLine() {
+  const url = buildShareUrl();
+  const text = `【やりくり帳】${currentYear}年${currentMonth}月`;
+  const lineUrl = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text + '\n' + url)}`;
+  window.open(lineUrl, '_blank');
+}
+
 // ─── 履歴 ─────────────────────────────────────────
 function openHistory() {
-  // 現在のデータを一時保存
-  const key = monthKey(currentYear, currentMonth);
-  monthData[key] = collectCurrentData();
-
+  if (!isReadOnly) {
+    const key = monthKey(currentYear, currentMonth);
+    monthData[key] = collectCurrentData();
+  }
   const list = document.getElementById('historyList');
   const keys = Object.keys(monthData).sort().reverse();
-
   if (keys.length === 0) {
     list.innerHTML = '<div class="history-empty">まだ保存済みデータがありません</div>';
   } else {
@@ -915,12 +1161,11 @@ function openHistory() {
     keys.forEach(k => {
       const d = monthData[k];
       const [y, m] = k.split('-');
-      const income = (d.sections.income || []).reduce((s,r) => s + (parseInt(r.value)||0), 0);
+      const income = (d.sections.income || []).reduce((s,r) => s+(parseInt(r.value)||0), 0);
       const expense = ['fixed','cash','actual'].reduce((s,sec) =>
-        s + (d.sections[sec]||[]).reduce((ss,r) => ss + (parseInt(r.value)||0), 0), 0);
-      const savings = (d.sections.savings||[]).reduce((s,r) => s + (parseInt(r.value)||0), 0);
+        s + (d.sections[sec]||[]).reduce((ss,r) => ss+(parseInt(r.value)||0), 0), 0);
+      const savings = (d.sections.savings||[]).reduce((s,r) => s+(parseInt(r.value)||0), 0);
       const bal = income - expense - savings;
-
       const item = document.createElement('div');
       item.className = 'history-item';
       item.innerHTML = `
@@ -940,21 +1185,15 @@ function openHistory() {
       list.appendChild(item);
     });
   }
-
   document.getElementById('historyModal').classList.add('open');
 }
 
-function closeHistory() {
-  document.getElementById('historyModal').classList.remove('open');
-}
-function closeHistoryOnOverlay(e) {
-  if (e.target === e.currentTarget) closeHistory();
-}
+function closeHistory() { document.getElementById('historyModal').classList.remove('open'); }
+function closeHistoryOnOverlay(e) { if (e.target === e.currentTarget) closeHistory(); }
 
-// ─── カード開閉トグル ─────────────────────────────
+// ─── カード開閉 ───────────────────────────────────
 function toggleCard(sec) {
-  const card = document.getElementById(`card-${sec}`);
-  card.classList.toggle('collapsed');
+  document.getElementById(`card-${sec}`).classList.toggle('collapsed');
 }
 
 // ─── トースト ────────────────────────────────────
